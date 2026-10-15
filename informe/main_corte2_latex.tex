@@ -1,0 +1,51 @@
+\documentclass[conference]{IEEEtran}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{url}
+
+% Código en línea que admite guiones bajos y permite cortar rutas largas en tablas
+\makeatletter
+\g@addto@macro{\UrlBreaks}{\do\_\do\:}
+\makeatother
+\urlstyle{tt}
+\newcommand{\cd}[1]{\path{#1}}
+
+\begin{document}
+
+\title{Diseño e Implementación de la API REST de la Plataforma Web TasteBox\\
+(Caso 6 -- Proyecto Bases de Datos, Segundo Corte)}
+
+\author{\IEEEauthorblockN{Camilo Arbey Cuadros Mendez, Juan Diego Sierra}
+\IEEEauthorblockA{Ingeniería Multimedia\\
+Universidad de San Buenaventura\\
+Bogotá, Colombia}}
+
+\maketitle
+
+\begin{abstract}
+Este documento extiende el análisis de requerimientos de TasteBox (corte 1) con el diseño de la capa de datos y de la API. Se formaliza el modelo entidad--relación y se argumenta el proceso de normalización hasta la forma normal de Boyce--Codd; se mapean las entidades a recursos REST y se justifican las decisiones de anidamiento, referencias y endpoints compuestos; y se describe la arquitectura por capas (rutas, controladores, servicios y repositorios) conectada a MySQL. La implementación en Node.js y Express cubre los diecinueve requerimientos funcionales, se documenta con OpenAPI y Swagger UI y se verifica con una colección de pruebas con casos de éxito y de error por endpoint.
+\end{abstract}
+
+\begin{IEEEkeywords}
+TasteBox, API REST, modelo entidad--relación, normalización, MySQL, Express, OpenAPI.
+\end{IEEEkeywords}
+
+% La numeración continúa a partir de la sección XII del informe del corte 1
+\setcounter{section}{12}
+
+\input{secciones_corte2}
+
+\begin{thebibliography}{9}
+\bibitem{owasp} OWASP Foundation, ``Password Storage Cheat Sheet,'' OWASP Cheat Sheet Series, 2026. [Online]. Available: https://cheatsheetseries.owasp.org/cheatsheets/Password\_Storage\_Cheat\_Sheet.html
+\bibitem{nist} National Institute of Standards and Technology, ``Digital Identity Guidelines: Authentication and Lifecycle Management,'' NIST Special Publication 800-63B. [Online]. Available: https://pages.nist.gov/800-63-3/sp800-63b.html
+\bibitem{fielding} R. T. Fielding, ``Architectural Styles and the Design of Network-based Software Architectures,'' Ph.D. dissertation, Dept. Inf. Comput. Sci., Univ. California, Irvine, CA, USA, 2000.
+\bibitem{rfc9110} R. Fielding, M. Nottingham, and J. Reschke, ``HTTP Semantics,'' IETF, RFC 9110, Jun. 2022.
+\bibitem{openapi} OpenAPI Initiative, ``OpenAPI Specification v3.0.3,'' 2020. [Online]. Available: https://spec.openapis.org/oas/v3.0.3
+\bibitem{rfc7519} M. Jones, J. Bradley, and N. Sakimura, ``JSON Web Token (JWT),'' IETF, RFC 7519, May 2015.
+\end{thebibliography}
+
+\end{document}

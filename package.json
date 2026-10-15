@@ -1,0 +1,22 @@
+{
+  "name": "tastebox-api",
+  "version": "2.0.0",
+  "description": "API REST de TasteBox (Node.js, Express y MySQL) - Proyecto Bases de Datos, corte 2",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "db:init": "node scripts/init-db.js",
+    "docs:export": "node scripts/export-openapi.js",
+    "postman:generar": "node scripts/generar-postman.js"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.2",
+    "mysql2": "^3.20.0",
+    "swagger-ui-express": "^5.0.1"
+  }
+}

@@ -1,0 +1,5 @@
+http://localhost:5000/api-docs
+
+La coleccion esta en la carpeta postman
+
+https://youtu.be/8ylnaLS7uxc

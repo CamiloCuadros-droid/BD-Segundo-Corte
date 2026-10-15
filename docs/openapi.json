@@ -1,0 +1,4206 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "TasteBox API",
+    "version": "2.0.0",
+    "description": "API REST de TasteBox: catálogo de recetas, colecciones, preparaciones, reseñas, hábitos, suscripciones y administración.\n\n**Autenticación:** inicia sesión en `POST /auth/login`, copia el `token` y pulsa **Authorize** (candado) para pegarlo. Cuenta de administrador de prueba: `admin@tastebox.com` / `admin123`.\n\n**Convenciones:** los errores tienen la forma `{ \"error\": \"mensaje\" }`; los errores de validación incluyen `detalles` por campo. Las contraseñas se almacenan en texto plano únicamente en este corte."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000",
+      "description": "Servidor local"
+    }
+  ],
+  "tags": [
+    {
+      "name": "Auth",
+      "description": "Registro e inicio de sesión"
+    },
+    {
+      "name": "Usuarios",
+      "description": "Gestión de cuentas y perfil"
+    },
+    {
+      "name": "Recetas",
+      "description": "Catálogo de recetas"
+    },
+    {
+      "name": "Reseñas",
+      "description": "Valoraciones y comentarios de recetas"
+    },
+    {
+      "name": "Colección",
+      "description": "Recetas guardadas por el usuario"
+    },
+    {
+      "name": "Preparaciones y hábitos",
+      "description": "Recetas preparadas e indicadores de hábitos"
+    },
+    {
+      "name": "Suscripciones",
+      "description": "Planes y suscripción del usuario"
+    },
+    {
+      "name": "Caja semanal",
+      "description": "Recomendación semanal (solo Premium)"
+    },
+    {
+      "name": "Catálogos",
+      "description": "Tipos de cocina, etiquetas y planes"
+    },
+    {
+      "name": "Administración",
+      "description": "Panel y consulta de suscripciones"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ]
+      },
+      "ErrorValidacion": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string",
+            "example": "Datos inválidos"
+          },
+          "detalles": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "campo": {
+                  "type": "string"
+                },
+                "mensaje": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Usuario": {
+        "type": "object",
+        "properties": {
+          "id_usuario": {
+            "type": "integer",
+            "example": 2
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Ana Gómez"
+          },
+          "correo": {
+            "type": "string",
+            "example": "ana@correo.com"
+          },
+          "rol": {
+            "type": "string",
+            "enum": [
+              "usuario",
+              "admin"
+            ]
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "activo",
+              "inactivo"
+            ]
+          },
+          "fecha_registro": {
+            "type": "string",
+            "example": "2026-10-14 09:30:00"
+          },
+          "plan": {
+            "type": "string",
+            "example": "Gratuito",
+            "description": "Solo en el listado de administración"
+          }
+        }
+      },
+      "RegistroInput": {
+        "type": "object",
+        "required": [
+          "nombre",
+          "correo",
+          "contrasena",
+          "confirmar_contrasena",
+          "acepta_terminos"
+        ],
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "minLength": 2,
+            "example": "Ana Gómez"
+          },
+          "correo": {
+            "type": "string",
+            "format": "email",
+            "example": "ana@correo.com"
+          },
+          "contrasena": {
+            "type": "string",
+            "minLength": 6,
+            "example": "secreto123"
+          },
+          "confirmar_contrasena": {
+            "type": "string",
+            "example": "secreto123"
+          },
+          "acepta_terminos": {
+            "type": "boolean",
+            "example": true
+          }
+        }
+      },
+      "LoginInput": {
+        "type": "object",
+        "required": [
+          "correo",
+          "contrasena"
+        ],
+        "properties": {
+          "correo": {
+            "type": "string",
+            "format": "email",
+            "example": "admin@tastebox.com"
+          },
+          "contrasena": {
+            "type": "string",
+            "example": "admin123"
+          }
+        }
+      },
+      "LoginRespuesta": {
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string",
+            "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+          },
+          "usuario": {
+            "$ref": "#/components/schemas/Usuario"
+          }
+        }
+      },
+      "UsuarioUpdate": {
+        "type": "object",
+        "description": "Al menos un campo. `rol` y `estado` solo los puede modificar un administrador.",
+        "properties": {
+          "nombre": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string",
+            "format": "email"
+          },
+          "contrasena": {
+            "type": "string",
+            "minLength": 6
+          },
+          "rol": {
+            "type": "string",
+            "enum": [
+              "usuario",
+              "admin"
+            ]
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "activo",
+              "inactivo"
+            ]
+          }
+        }
+      },
+      "Receta": {
+        "type": "object",
+        "properties": {
+          "id_receta": {
+            "type": "integer",
+            "example": 1
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Pasta Carbonara"
+          },
+          "id_tipo_cocina": {
+            "type": "integer",
+            "example": 1
+          },
+          "tipo_cocina": {
+            "type": "string",
+            "example": "Italiana"
+          },
+          "dificultad": {
+            "type": "string",
+            "enum": [
+              "facil",
+              "media",
+              "dificil"
+            ]
+          },
+          "tiempo_min": {
+            "type": "integer",
+            "example": 30
+          },
+          "descripcion": {
+            "type": "string"
+          },
+          "imagen_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "fecha_creacion": {
+            "type": "string"
+          },
+          "calificacion_promedio": {
+            "type": "string",
+            "nullable": true,
+            "example": "4.5"
+          },
+          "total_resenas": {
+            "type": "integer",
+            "example": 2
+          }
+        }
+      },
+      "RecetaInput": {
+        "type": "object",
+        "required": [
+          "nombre",
+          "id_tipo_cocina",
+          "dificultad",
+          "tiempo_min",
+          "descripcion"
+        ],
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "example": "Arepas rellenas"
+          },
+          "id_tipo_cocina": {
+            "type": "integer",
+            "example": 3
+          },
+          "dificultad": {
+            "type": "string",
+            "enum": [
+              "facil",
+              "media",
+              "dificil"
+            ],
+            "example": "facil"
+          },
+          "tiempo_min": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 25
+          },
+          "descripcion": {
+            "type": "string",
+            "minLength": 10,
+            "example": "Arepas de maíz rellenas de queso y pollo desmechado."
+          },
+          "imagen_url": {
+            "type": "string",
+            "example": "https://ejemplo.com/arepas.jpg"
+          }
+        }
+      },
+      "RecetasPagina": {
+        "type": "object",
+        "properties": {
+          "datos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Receta"
+            }
+          },
+          "pagina": {
+            "type": "integer",
+            "example": 1
+          },
+          "limite": {
+            "type": "integer",
+            "example": 10
+          },
+          "total": {
+            "type": "integer",
+            "example": 3
+          }
+        }
+      },
+      "Etiqueta": {
+        "type": "object",
+        "properties": {
+          "id_etiqueta": {
+            "type": "integer",
+            "example": 1
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Rápida"
+          }
+        }
+      },
+      "TipoCocina": {
+        "type": "object",
+        "properties": {
+          "id_tipo_cocina": {
+            "type": "integer",
+            "example": 1
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Italiana"
+          }
+        }
+      },
+      "NombreInput": {
+        "type": "object",
+        "required": [
+          "nombre"
+        ],
+        "properties": {
+          "nombre": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 50,
+            "example": "Vegana"
+          }
+        }
+      },
+      "Plan": {
+        "type": "object",
+        "properties": {
+          "id_plan": {
+            "type": "integer",
+            "example": 2
+          },
+          "nombre": {
+            "type": "string",
+            "example": "Premium"
+          },
+          "precio_mensual": {
+            "type": "string",
+            "example": "29900.00"
+          },
+          "limite_recetas_mes": {
+            "type": "integer",
+            "nullable": true,
+            "example": null
+          }
+        }
+      },
+      "Resena": {
+        "type": "object",
+        "properties": {
+          "id_resena": {
+            "type": "integer",
+            "example": 1
+          },
+          "id_usuario": {
+            "type": "integer",
+            "example": 2
+          },
+          "usuario": {
+            "type": "string",
+            "example": "Ana Gómez"
+          },
+          "id_receta": {
+            "type": "integer",
+            "example": 1
+          },
+          "calificacion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          },
+          "comentario": {
+            "type": "string",
+            "nullable": true,
+            "example": "Quedó deliciosa"
+          },
+          "volveria_a_cocinar": {
+            "type": "boolean",
+            "example": true
+          },
+          "fecha": {
+            "type": "string"
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Etiqueta"
+            }
+          }
+        }
+      },
+      "ResenaInput": {
+        "type": "object",
+        "required": [
+          "calificacion"
+        ],
+        "properties": {
+          "calificacion": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 5,
+            "example": 5
+          },
+          "comentario": {
+            "type": "string",
+            "example": "Quedó deliciosa"
+          },
+          "volveria_a_cocinar": {
+            "type": "boolean",
+            "example": true
+          },
+          "etiquetas": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "example": [
+              1,
+              3
+            ]
+          }
+        }
+      },
+      "ResenasReceta": {
+        "type": "object",
+        "properties": {
+          "receta": {
+            "type": "object",
+            "properties": {
+              "id_receta": {
+                "type": "integer"
+              },
+              "nombre": {
+                "type": "string"
+              }
+            }
+          },
+          "resumen": {
+            "type": "object",
+            "properties": {
+              "calificacion_promedio": {
+                "type": "string",
+                "nullable": true,
+                "example": "4.5"
+              },
+              "total_resenas": {
+                "type": "integer",
+                "example": 2
+              }
+            }
+          },
+          "resenas": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Resena"
+            }
+          }
+        }
+      },
+      "IdRecetaInput": {
+        "type": "object",
+        "required": [
+          "id_receta"
+        ],
+        "properties": {
+          "id_receta": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 1
+          }
+        }
+      },
+      "RecetaColeccion": {
+        "type": "object",
+        "properties": {
+          "id_receta": {
+            "type": "integer"
+          },
+          "nombre": {
+            "type": "string"
+          },
+          "tipo_cocina": {
+            "type": "string"
+          },
+          "dificultad": {
+            "type": "string"
+          },
+          "tiempo_min": {
+            "type": "integer"
+          },
+          "imagen_url": {
+            "type": "string",
+            "nullable": true
+          },
+          "fecha_guardado": {
+            "type": "string"
+          }
+        }
+      },
+      "Preparacion": {
+        "type": "object",
+        "properties": {
+          "id_preparacion": {
+            "type": "integer",
+            "example": 1
+          },
+          "id_receta": {
+            "type": "integer",
+            "example": 1
+          },
+          "receta": {
+            "type": "string",
+            "example": "Pasta Carbonara"
+          },
+          "tipo_cocina": {
+            "type": "string",
+            "example": "Italiana"
+          },
+          "fecha_preparacion": {
+            "type": "string",
+            "example": "2026-10-14 12:00:00"
+          }
+        }
+      },
+      "Habitos": {
+        "type": "object",
+        "properties": {
+          "recetas_preparadas_mes_actual": {
+            "type": "integer",
+            "example": 3
+          },
+          "preparaciones_por_mes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "mes": {
+                  "type": "string",
+                  "example": "2026-10"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "distribucion_por_cocina": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "tipo_cocina": {
+                  "type": "string"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          },
+          "racha_dias": {
+            "type": "integer",
+            "example": 2
+          },
+          "actividad_reciente": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id_receta": {
+                  "type": "integer"
+                },
+                "receta": {
+                  "type": "string"
+                },
+                "fecha_preparacion": {
+                  "type": "string"
+                }
+              }
+            }
+          }
+        }
+      },
+      "CambioPlanInput": {
+        "type": "object",
+        "required": [
+          "id_plan"
+        ],
+        "properties": {
+          "id_plan": {
+            "type": "integer",
+            "minimum": 1,
+            "example": 2
+          }
+        }
+      },
+      "SuscripcionUsuario": {
+        "type": "object",
+        "properties": {
+          "suscripcion": {
+            "type": "object",
+            "properties": {
+              "id_suscripcion": {
+                "type": "integer"
+              },
+              "id_usuario": {
+                "type": "integer"
+              },
+              "id_plan": {
+                "type": "integer"
+              },
+              "plan": {
+                "type": "string",
+                "example": "Gratuito"
+              },
+              "precio_mensual": {
+                "type": "string"
+              },
+              "limite_recetas_mes": {
+                "type": "integer",
+                "nullable": true
+              },
+              "estado": {
+                "type": "string",
+                "example": "activa"
+              },
+              "fecha_inicio": {
+                "type": "string",
+                "example": "2026-10-14"
+              },
+              "fecha_expiracion": {
+                "type": "string",
+                "nullable": true
+              }
+            }
+          },
+          "uso": {
+            "type": "object",
+            "properties": {
+              "recetas_preparadas_mes": {
+                "type": "integer",
+                "example": 2
+              },
+              "limite_recetas_mes": {
+                "type": "integer",
+                "nullable": true,
+                "example": 5
+              },
+              "disponibles": {
+                "type": "integer",
+                "nullable": true,
+                "example": 3
+              }
+            }
+          }
+        }
+      },
+      "SuscripcionAdmin": {
+        "type": "object",
+        "properties": {
+          "id_suscripcion": {
+            "type": "integer"
+          },
+          "id_usuario": {
+            "type": "integer"
+          },
+          "usuario": {
+            "type": "string"
+          },
+          "correo": {
+            "type": "string"
+          },
+          "plan": {
+            "type": "string"
+          },
+          "estado": {
+            "type": "string",
+            "enum": [
+              "activa",
+              "vencida",
+              "cancelada"
+            ]
+          },
+          "fecha_inicio": {
+            "type": "string"
+          },
+          "fecha_expiracion": {
+            "type": "string",
+            "nullable": true
+          }
+        }
+      },
+      "CajaInput": {
+        "type": "object",
+        "required": [
+          "semana",
+          "recetas"
+        ],
+        "properties": {
+          "semana": {
+            "type": "string",
+            "example": "2026-10-12",
+            "description": "Fecha (YYYY-MM-DD) que debe ser lunes"
+          },
+          "recetas": {
+            "type": "array",
+            "items": {
+              "type": "integer"
+            },
+            "minItems": 1,
+            "example": [
+              1,
+              2
+            ]
+          }
+        }
+      },
+      "Caja": {
+        "type": "object",
+        "properties": {
+          "id_caja": {
+            "type": "integer"
+          },
+          "id_usuario": {
+            "type": "integer"
+          },
+          "semana": {
+            "type": "string",
+            "example": "2026-10-12"
+          },
+          "recetas": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "id_receta": {
+                  "type": "integer"
+                },
+                "nombre": {
+                  "type": "string"
+                },
+                "tipo_cocina": {
+                  "type": "string"
+                },
+                "dificultad": {
+                  "type": "string"
+                },
+                "tiempo_min": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      },
+      "Resumen": {
+        "type": "object",
+        "properties": {
+          "usuarios": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              },
+              "activos": {
+                "type": "integer"
+              }
+            }
+          },
+          "recetas": {
+            "type": "object",
+            "properties": {
+              "total": {
+                "type": "integer"
+              }
+            }
+          },
+          "preparaciones_mes_actual": {
+            "type": "integer"
+          },
+          "suscripciones_activas_por_plan": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "plan": {
+                  "type": "string"
+                },
+                "total": {
+                  "type": "integer"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/auth/registro": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Registrar un usuario (RF-01)",
+        "description": "Crea la cuenta con rol `usuario` y le asigna el plan Gratuito. Valida correo único, confirmación de contraseña y aceptación de términos.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistroInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuario creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": [
+          "Auth"
+        ],
+        "summary": "Iniciar sesión (RF-02)",
+        "description": "Verifica las credenciales contra la base de datos y devuelve un token JWT. Ante credenciales erróneas responde siempre con el mismo mensaje.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Sesión iniciada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LoginRespuesta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Listar usuarios (admin, RF-19)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Busca por nombre o correo",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "description": "activo | inactivo",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "rol",
+            "in": "query",
+            "required": false,
+            "description": "usuario | admin",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Lista de usuarios",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Usuario"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}": {
+      "get": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Consultar un usuario (propio o admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Usuario",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Actualizar perfil (RF-14) o gestionar cuenta (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioUpdate"
+              },
+              "example": {
+                "nombre": "Ana María Gómez"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Usuario actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Usuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Usuarios"
+        ],
+        "summary": "Eliminar un usuario (admin, RF-19)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Usuario eliminado"
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recetas": {
+      "get": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Listar catálogo con búsqueda y filtros (RF-03, RF-04)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Texto a buscar en nombre o descripción",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "cocina",
+            "in": "query",
+            "required": false,
+            "description": "Nombre del tipo de cocina, p. ej. Italiana",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "dificultad",
+            "in": "query",
+            "required": false,
+            "description": "facil | media | dificil",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "pagina",
+            "in": "query",
+            "required": false,
+            "description": "Número de página (por defecto 1)",
+            "schema": {
+              "type": "integer"
+            }
+          },
+          {
+            "name": "limite",
+            "in": "query",
+            "required": false,
+            "description": "Resultados por página (1-50, por defecto 10)",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Página de recetas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecetasPagina"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Registrar una receta (admin, RF-16)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecetaInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Receta creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Receta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recetas/{id}": {
+      "get": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Detalle de una receta (RF-05)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la receta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Receta",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Receta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Actualizar una receta (admin, RF-17)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la receta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "description": "Al menos un campo de RecetaInput",
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/RecetaInput"
+                  }
+                ],
+                "required": []
+              },
+              "example": {
+                "tiempo_min": 35
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Receta actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Receta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Recetas"
+        ],
+        "summary": "Eliminar una receta (admin, RF-17)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la receta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Receta eliminada"
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/recetas/{id}/resenas": {
+      "get": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Consultar reseñas de una receta (RF-09)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la receta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Reseñas y resumen",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ResenasReceta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Crear una reseña (RF-08)",
+        "description": "Un usuario solo puede reseñar una vez cada receta.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la receta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResenaInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Reseña creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resena"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/resenas/{id}": {
+      "put": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Editar una reseña propia",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResenaInput"
+              },
+              "example": {
+                "calificacion": 4
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Reseña actualizada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resena"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Reseñas"
+        ],
+        "summary": "Eliminar una reseña propia",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la reseña",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Reseña eliminada"
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}/coleccion": {
+      "get": {
+        "tags": [
+          "Colección"
+        ],
+        "summary": "Consultar la colección del usuario",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Recetas guardadas",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RecetaColeccion"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Colección"
+        ],
+        "summary": "Guardar una receta en la colección (RF-06)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRecetaInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Receta guardada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecetaColeccion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}/coleccion/{idReceta}": {
+      "delete": {
+        "tags": [
+          "Colección"
+        ],
+        "summary": "Quitar una receta de la colección",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "idReceta",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la receta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Receta quitada"
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}/preparaciones": {
+      "get": {
+        "tags": [
+          "Preparaciones y hábitos"
+        ],
+        "summary": "Listar recetas preparadas",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Preparaciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Preparacion"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Preparaciones y hábitos"
+        ],
+        "summary": "Marcar una receta como preparada (RF-07)",
+        "description": "Regla de negocio: el plan Gratuito tiene un límite mensual de recetas (5). Al superarlo responde 403.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/IdRecetaInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Preparación registrada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Preparacion"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}/habitos": {
+      "get": {
+        "tags": [
+          "Preparaciones y hábitos"
+        ],
+        "summary": "Consultar hábitos de cocina (RF-10)",
+        "description": "Endpoint compuesto: calcula indicadores a partir de las preparaciones (no hay tabla de hábitos).",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Indicadores de hábitos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Habitos"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}/suscripcion": {
+      "get": {
+        "tags": [
+          "Suscripciones"
+        ],
+        "summary": "Consultar plan y uso (RF-11)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suscripción vigente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuscripcionUsuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Suscripciones"
+        ],
+        "summary": "Cambiar de plan, p. ej. a Premium (RF-12)",
+        "description": "Cancela la suscripción activa y crea una nueva. Premium vence al mes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CambioPlanInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Nueva suscripción",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SuscripcionUsuario"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/suscripciones": {
+      "get": {
+        "tags": [
+          "Suscripciones"
+        ],
+        "summary": "Listar suscripciones (admin, RF-18)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "estado",
+            "in": "query",
+            "required": false,
+            "description": "activa | vencida | cancelada",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "q",
+            "in": "query",
+            "required": false,
+            "description": "Busca por nombre o correo del usuario",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Suscripciones",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SuscripcionAdmin"
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}/caja-semanal": {
+      "get": {
+        "tags": [
+          "Caja semanal"
+        ],
+        "summary": "Consultar la caja de una semana (RF-13)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "semana",
+            "in": "query",
+            "required": false,
+            "description": "Lunes de la semana (YYYY-MM-DD). Por defecto, la semana actual",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Caja semanal",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caja"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Caja semanal"
+        ],
+        "summary": "Asignar una caja semanal (admin, RF-13)",
+        "description": "Solo para usuarios Premium. La semana debe iniciar en lunes.",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CajaInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Caja creada",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Caja"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/usuarios/{id}/caja-semanal/{idCaja}": {
+      "delete": {
+        "tags": [
+          "Caja semanal"
+        ],
+        "summary": "Eliminar una caja semanal (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del usuario",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          },
+          {
+            "name": "idCaja",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la caja",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Caja eliminada"
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tipos-cocina": {
+      "get": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Listar tipos de cocina",
+        "responses": {
+          "200": {
+            "description": "Lista",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TipoCocina"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Crear un tipo de cocina (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NombreInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TipoCocina"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/tipos-cocina/{id}": {
+      "put": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Renombrar un tipo de cocina (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del tipo de cocina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NombreInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TipoCocina"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Eliminar un tipo de cocina (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador del tipo de cocina",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Eliminado"
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/etiquetas": {
+      "get": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Listar etiquetas de reseñas",
+        "responses": {
+          "200": {
+            "description": "Lista",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Etiqueta"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Crear una etiqueta (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NombreInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Creado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Etiqueta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/etiquetas/{id}": {
+      "put": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Renombrar una etiqueta (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la etiqueta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/NombreInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Actualizado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Etiqueta"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Eliminar una etiqueta (admin)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Identificador de la etiqueta",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "example": 1
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Eliminado"
+          },
+          "400": {
+            "description": "Datos o parámetros inválidos",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorValidacion"
+                },
+                "example": {
+                  "error": "Datos inválidos",
+                  "detalles": [
+                    {
+                      "campo": "correo",
+                      "mensaje": "Debe ser un correo electrónico válido"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Recurso no encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Recurso no encontrado"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflicto con el estado actual (duplicado o regla de negocio)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Ya existe un registro con esos datos (valor duplicado)"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/planes": {
+      "get": {
+        "tags": [
+          "Catálogos"
+        ],
+        "summary": "Listar planes de suscripción",
+        "responses": {
+          "200": {
+            "description": "Planes",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Plan"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/admin/resumen": {
+      "get": {
+        "tags": [
+          "Administración"
+        ],
+        "summary": "Panel de resumen (admin, RF-15)",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Resumen general",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Resumen"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "No autenticado: falta el token o es inválido/expirado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Token inválido o expirado"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Sin permisos para realizar la operación",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                },
+                "example": {
+                  "error": "Acceso restringido a administradores"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
